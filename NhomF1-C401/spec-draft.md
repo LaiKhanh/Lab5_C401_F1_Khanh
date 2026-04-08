@@ -14,9 +14,13 @@ Khách hàng mua xe VinFast bị nhiễu loạn thông tin. Website hãng thì k
 
 **Auto hay aug?** Augmentation — AI tư vấn và đề xuất mẫu xe nhưng quyết định mua xe vẫn do khách hàng.
 
-**Learning signal:** User correction đi vào đâu? -> User correction trở thành context bổ sung cho AI để cải thiện recommendation.
-Product thu signal gì để biết tốt lên hay tệ đi? -> User click vào mẫu xe AI gợi ý
-Data thuộc loại nào? -> Domain-specific, Human-judgement, User-specific
+**Learning signal:** <br>
+User correction đi vào đâu? -> User correction trở thành context bổ sung cho AI để cải thiện recommendation.<br>
+
+Product thu signal gì để biết tốt lên hay tệ đi? -> User click vào mẫu xe AI gợi ý.<br>
+
+Data thuộc loại nào? -> Domain-specific, Human-judgement, User-specific.<br>
+
 Có marginal value không? -> Có. Data này được thu thập trực tiếp từ người dùng khi chọn xe giúp model học từ sai sót và cá nhân hóa trải nghiệm người dùng từ đó cải thiện AI recommendation.
 
 ## Hướng đi chính
