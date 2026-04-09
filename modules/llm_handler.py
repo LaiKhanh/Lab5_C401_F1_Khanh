@@ -92,6 +92,7 @@ class VinFastLLMHandler:
             }
             
         except Exception as e:
+            print(f"[Lỗi hệ thống LLM]: {str(e)}")
             return {
                 "status": "error",
                 "type": "unknown",
