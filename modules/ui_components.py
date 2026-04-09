@@ -208,57 +208,85 @@ def render_report_modal(message_index: int, message_content: str):
             height: 100%;
             background-color: rgba(0, 0, 0, 0.6);
             z-index: 8000;
-            pointer-events: none;
+            pointer-events: all;
+        }
+        
+        .modal-wrapper {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            width: 90%;
+            max-width: 500px;
+        }
+        
+        .modal-box {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.4);
+            position: relative;
+            z-index: 9999;
+        }
+        
+        .modal-title {
+            text-align: center;
+            color: #172B53;
+            margin: 0 0 20px 0;
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        .modal-label {
+            color: #172B53;
+            font-weight: 600;
+            margin: 0 0 15px 0;
+            font-size: 15px;
+            display: block;
+        }
+        
+        .modal-content {
+            margin: 15px 0;
+        }
+        
+        .modal-box [data-testid="stRadio"] {
+            background: white !important;
+            padding: 10px 0 !important;
+        }
+        
+        .modal-box [data-testid="stRadio"] > div {
+            background: white !important;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+            width: 100%;
+        }
+        
+        .modal-buttons > div {
+            flex: 1;
         }
     </style>
     <div class="modal-overlay"></div>
+    <div class="modal-wrapper">
+        <div class="modal-box">
+            <div class="modal-title">📋 Báo cáo câu trả lời</div>
+            <span class="modal-label">Chọn lý do báo cáo:</span>
+        </div>
+    </div>
     """, unsafe_allow_html=True)
     
-    # Centered columns
-    col_left, col_center, col_right = st.columns([0.15, 1.7, 0.15])
+    # Create a fixed position container for modal content
+    col_left, col_center, col_right = st.columns([1, 3, 1], gap="small")
     
     with col_center:
-        # Container cho toàn bộ modal content
         with st.container():
-            st.markdown("""
-            <style>
-                .modal-box {
-                    background: white;
-                    border-radius: 15px;
-                    padding: 30px;
-                    box-shadow: 0 15px 50px rgba(0,0,0,0.4);
-                    position: relative;
-                    z-index: 9999;
-                }
-                .modal-box .stRadio {
-                    background: white;
-                    padding: 15px 0;
-                }
-                .modal-box .stRadio > label {
-                    font-size: 14px !important;
-                    padding: 8px 0 !important;
-                }
-                .modal-title {
-                    text-align: center;
-                    color: #172B53;
-                    margin: 0 0 20px 0;
-                    font-size: 24px;
-                    font-weight: 700;
-                }
-                .modal-label {
-                    color: #172B53;
-                    font-weight: 600;
-                    margin: 0 0 15px 0;
-                    font-size: 15px;
-                    display: block;
-                }
-            </style>
-            <div class="modal-box">
-                <div class="modal-title">📋 Báo cáo câu trả lời</div>
-                <span class="modal-label">Chọn lý do báo cáo:</span>
-            """, unsafe_allow_html=True)
+            st.markdown('<div class="modal-content">', unsafe_allow_html=True)
             
-            # Radio buttons inside modal-box
+            # Radio buttons
             selected_reason = st.radio(
                 "Lý do:",
                 REPORT_REASONS,
@@ -266,9 +294,8 @@ def render_report_modal(message_index: int, message_content: str):
                 label_visibility="collapsed"
             )
             
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            # Buttons inside modal-box
+            # Buttons
+            st.markdown('<div class="modal-buttons">', unsafe_allow_html=True)
             btn_col1, btn_col2 = st.columns(2)
             with btn_col1:
                 if st.button("❌ Hủy", use_container_width=True, key=f"cancel_report_{message_index}"):
@@ -279,8 +306,9 @@ def render_report_modal(message_index: int, message_content: str):
                     save_report(message_content, selected_reason)
                     st.session_state.report_modal = None
                     st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
             
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
 def render_sidebar_content():
     """Hàm vẽ nội dung bên trong sidebar"""
