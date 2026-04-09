@@ -3,12 +3,8 @@ from typing import TypedDict
 
 from modules.validator import handle_exception
 from modules.llm_handler import llm_agent
-from modules.data_loader import load_data
 
 
-# ===== LOAD PROMPT =====
-with open("prompts/system_prompt.txt", "r", encoding="utf-8") as f:
-    SYSTEM_PROMPT = f.read()
 
 
 # ===== STATE =====
@@ -42,7 +38,7 @@ def route_after_validator(state):
 def llm_node(state: AgentState):
     user_input = state["clean_input"]
 
-    result = llm_agent.get_response(user_input)
+    result = llm_agent.get_response(user_input, session_id="cli_user")
 
     if result["status"] != "ok":
         return {
@@ -90,4 +86,7 @@ if __name__ == "__main__":
             "input": user_input
         })
 
-        print("\nBot:", result["response"])
+        if "response" in result:
+            print("\nBot:", result["response"])
+        else:
+            print("\nBot: Hệ thống không trả về phản hồi hợp lệ.")
