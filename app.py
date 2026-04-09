@@ -1,6 +1,6 @@
 import streamlit as st
 import time
-from modules.ui_components import inject_custom_css, render_sidebar_content
+from modules.ui_components import inject_custom_css, render_sidebar_content, render_report_modal
 from modules.llm_handler import llm_agent
 from modules.validator import handle_exception
 
@@ -21,6 +21,8 @@ if "current_page" not in st.session_state:
     st.session_state.current_page = "chat"
 if "loading" not in st.session_state:
     st.session_state.loading = False
+if "report_modal" not in st.session_state:
+    st.session_state.report_modal = None
 
 # 3. SETUP CSS & HEADER
 inject_custom_css()
@@ -31,19 +33,48 @@ with st.sidebar:
 
 # 5. PAGE CONTENT
 if st.session_state.current_page == "chat":
+    # Hiển thị modal nếu có
+    if st.session_state.report_modal is not None:
+        msg_content = st.session_state.messages[st.session_state.report_modal]["content"]
+        render_report_modal(st.session_state.report_modal, msg_content)
+    
     st.markdown('<div class="chat-container">', unsafe_allow_html=True)
-    for msg in st.session_state.messages:
+    for idx, msg in enumerate(st.session_state.messages):
         role_class = "bot" if msg["role"] == "bot" else "user"
         icon = "🤖" if msg["role"] == "bot" else "👤"
-        st.markdown(f"""
-            <div class="msg-wrapper {role_class}">
-                <div class="avatar">{icon}</div>
-                <div class="msg-content">
-                    <div class="bubble">{msg['content']}</div>
-                    <div class="msg-subtext">{"ViVin" if msg["role"]=="bot" else "YOU"} </div>
+        
+        if msg["role"] == "bot":
+            # Hiển thị bot message với button report
+            st.markdown(f"""
+                <div class="msg-wrapper {role_class}">
+                    <div class="avatar">{icon}</div>
+                    <div class="msg-content">
+                        <div class="bubble">{msg['content']}</div>
+                        <div class="msg-subtext">ViVin</div>
+                    </div>
                 </div>
-            </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
+            
+            # Thêm button "..." để report
+            col1, col2 = st.columns([0.85, 0.15])
+            with col2:
+                if st.button("⋯", key=f"more_btn_{idx}", help="Thêm lựa chọn"):
+                    if st.session_state.report_modal == idx:
+                        st.session_state.report_modal = None
+                    else:
+                        st.session_state.report_modal = idx
+                    st.rerun()
+        else:
+            # Hiển thị user message bình thường
+            st.markdown(f"""
+                <div class="msg-wrapper {role_class}">
+                    <div class="avatar">{icon}</div>
+                    <div class="msg-content">
+                        <div class="bubble">{msg['content']}</div>
+                        <div class="msg-subtext">YOU</div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
     
     if st.session_state.loading:
         st.markdown('<div class="msg-wrapper bot"><div class="avatar">🤖</div><div class="bubble">...</div></div>', unsafe_allow_html=True)

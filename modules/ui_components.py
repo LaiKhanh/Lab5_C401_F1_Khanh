@@ -1,5 +1,36 @@
 import streamlit as st
 from datetime import datetime
+import json
+import os
+from datetime import datetime as dt
+
+REPORT_FILE = "data/reports.json"
+
+def init_report_file():
+    """Khởi tạo file reports.json nếu chưa tồn tại"""
+    if not os.path.exists("data"):
+        os.makedirs("data")
+    if not os.path.exists(REPORT_FILE):
+        with open(REPORT_FILE, "w", encoding="utf-8") as f:
+            json.dump([], f, ensure_ascii=False, indent=2)
+
+def save_report(message_content: str, reason: str):
+    """Lưu report vào file JSON"""
+    init_report_file()
+    reports = []
+    if os.path.exists(REPORT_FILE):
+        with open(REPORT_FILE, "r", encoding="utf-8") as f:
+            reports = json.load(f)
+    
+    new_report = {
+        "timestamp": dt.now().strftime("%d/%m/%Y %H:%M:%S"),
+        "message": message_content,
+        "reason": reason
+    }
+    reports.append(new_report)
+    
+    with open(REPORT_FILE, "w", encoding="utf-8") as f:
+        json.dump(reports, f, ensure_ascii=False, indent=2)
 
 def inject_custom_css():
     """Nhúng CSS để fix màu Palette, cố định Header và tối ưu khung nhập liệu"""
@@ -85,12 +116,19 @@ def inject_custom_css():
     /* CHAT MESSAGES */
     .chat-container {{ display: flex; flex-direction: column; gap: 25px; margin-top: 20px; }}
     .msg-wrapper {{ display: flex; gap: 15px; max-width: 85%; align-items: flex-start; }}
-    .msg-wrapper.bot {{ align-self: flex-start; }}
+    .msg-wrapper.bot {{ align-self: flex-start; justify-content: flex-start; }}
     .msg-wrapper.user {{ align-self: flex-end; flex-direction: row-reverse; }}
     .avatar {{ font-size: 24px; flex-shrink: 0; padding-top: 5px; }}
+    .msg-content {{ display: flex; flex-direction: column; gap: 5px; }}
     .bubble {{ padding: 14px 18px; border-radius: 15px; font-size: 15px; line-height: 1.5; }}
     .bot .bubble {{ background-color: {COLOR_BOT_BUBBLE}; color: {COLOR_SIDEBAR_NAVY}; border-top-left-radius: 2px; }}
     .user .bubble {{ background-color: {COLOR_USER_BUBBLE}; color: {COLOR_SIDEBAR_NAVY}; border-top-right-radius: 2px; }}
+    .msg-actions {{ display: flex; gap: 10px; }}
+    .msg-more-btn {{ background: none; border: none; font-size: 18px; cursor: pointer; color: {COLOR_SIDEBAR_NAVY}; padding: 0; }}
+    .msg-more-btn:hover {{ opacity: 0.7; }}
+    .report-menu {{ display: flex; gap: 8px; }}
+    .report-btn {{ background-color: #FF6B6B; color: white; border: none; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; }}
+    .report-btn:hover {{ background-color: #FF5252; }}
 
     /* TỐI ƯU KHUNG NHẬP LIỆU (PROMPT INPUT) */
     [data-testid="stForm"] {{
@@ -105,7 +143,7 @@ def inject_custom_css():
         border: 2px solid {COLOR_ACCENT_HOVER} !important;
         border-radius: 20px !important;
         padding: 0 15px !important;
-        z-index: 999 !important;
+        z-index: 100 !important;
         box-shadow: 0 4px 20px rgba(0,0,0,0.08) !important;
         display: flex !important;
         align-items: center !important;
@@ -147,6 +185,102 @@ def inject_custom_css():
     </style>
     <div class="nav-title">ViVin Chatbot</div>
     """, unsafe_allow_html=True)
+
+REPORT_REASONS = [
+    "Câu trả lời không chính xác",
+    "Câu trả lời không liên quan",
+    "Câu trả lời khiến tôi bị lầm lẫn",
+    "Câu trả lời không đủ chi tiết",
+    "Lỗi kỹ thuật/máy chủ",
+    "Khác"
+]
+
+def render_report_modal(message_index: int, message_content: str):
+    """Hàm hiển thị modal popup để chọn lý do report"""
+    # Hiển thị overlay background
+    st.markdown("""
+    <style>
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 8000;
+            pointer-events: none;
+        }
+    </style>
+    <div class="modal-overlay"></div>
+    """, unsafe_allow_html=True)
+    
+    # Centered columns
+    col_left, col_center, col_right = st.columns([0.15, 1.7, 0.15])
+    
+    with col_center:
+        # Container cho toàn bộ modal content
+        with st.container():
+            st.markdown("""
+            <style>
+                .modal-box {
+                    background: white;
+                    border-radius: 15px;
+                    padding: 30px;
+                    box-shadow: 0 15px 50px rgba(0,0,0,0.4);
+                    position: relative;
+                    z-index: 9999;
+                }
+                .modal-box .stRadio {
+                    background: white;
+                    padding: 15px 0;
+                }
+                .modal-box .stRadio > label {
+                    font-size: 14px !important;
+                    padding: 8px 0 !important;
+                }
+                .modal-title {
+                    text-align: center;
+                    color: #172B53;
+                    margin: 0 0 20px 0;
+                    font-size: 24px;
+                    font-weight: 700;
+                }
+                .modal-label {
+                    color: #172B53;
+                    font-weight: 600;
+                    margin: 0 0 15px 0;
+                    font-size: 15px;
+                    display: block;
+                }
+            </style>
+            <div class="modal-box">
+                <div class="modal-title">📋 Báo cáo câu trả lời</div>
+                <span class="modal-label">Chọn lý do báo cáo:</span>
+            """, unsafe_allow_html=True)
+            
+            # Radio buttons inside modal-box
+            selected_reason = st.radio(
+                "Lý do:",
+                REPORT_REASONS,
+                key=f"report_reason_{message_index}",
+                label_visibility="collapsed"
+            )
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Buttons inside modal-box
+            btn_col1, btn_col2 = st.columns(2)
+            with btn_col1:
+                if st.button("❌ Hủy", use_container_width=True, key=f"cancel_report_{message_index}"):
+                    st.session_state.report_modal = None
+                    st.rerun()
+            with btn_col2:
+                if st.button("✓ Gửi", use_container_width=True, key=f"send_report_{message_index}"):
+                    save_report(message_content, selected_reason)
+                    st.session_state.report_modal = None
+                    st.rerun()
+            
+            st.markdown("</div>", unsafe_allow_html=True)
 
 def render_sidebar_content():
     """Hàm vẽ nội dung bên trong sidebar"""
