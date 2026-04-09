@@ -2,3 +2,7 @@ streamlit
 google-generativeai
 python-dotenv
 pandas
+langchain
+langchain_ollama
+langgraph
+dotenv
