@@ -1,5 +1,5 @@
 from langchain_ollama import ChatOllama
-\
+
 MODEL_NAME = "qwen2.5:7b-instruct"
 
 
