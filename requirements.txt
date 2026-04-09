@@ -5,3 +5,4 @@ pandas
 langchain
 langchain_ollama
 langgraph
+dotenv
