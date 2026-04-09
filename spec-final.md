@@ -106,3 +106,4 @@ Mỗi feature chính = 1 bảng. AI trả lời xong → chuyện gì xảy ra?
 
 *Tóm tắt tự do — viết bằng ngôn ngữ tự nhiên, không format bắt buộc.*
 *Gom lại: product giải gì, cho ai, AI làm gì (auto/aug), quality thế nào (precision/recall), risk chính, data flywheel ra sao.*
+

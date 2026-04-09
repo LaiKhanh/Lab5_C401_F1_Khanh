@@ -16,9 +16,9 @@ class VinFastLLMHandler:
         if not os.environ.get("OPENAI_API_KEY"):
             print("CẢNH BÁO: Chưa có OPENAI_API_KEY trong file .env")
 
-        self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
-        #self.llm = ChatOllama(model="qwen2.5:7b-instruct", temperature=0.2)
-        
+        self.llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
+        # self.llm = ChatOllama(model="qwen2.5:7b-instruct", temperature=0.2)
+
         # Đọc System Prompt
         prompt_path = os.path.join(os.path.dirname(__file__), "..", "prompts", "system_prompt.txt")
         try:
@@ -34,7 +34,6 @@ class VinFastLLMHandler:
         self.app = create_react_agent(
             model=self.llm,
             tools=agent_tools,
-            prompt=SystemMessage(content=self.system_prompt),
             checkpointer=self.memory
         )
 
@@ -53,7 +52,7 @@ class VinFastLLMHandler:
         try:
             # Dùng stream để lấy log gọi tool real-time
             final_message = None
-            for chunk in self.app.stream({"messages": [("user", user_question)]}, config=config, stream_mode="updates"):
+            for chunk in self.app.stream({"messages": [("system", self.system_prompt), ("user", user_question)]}, config=config, stream_mode="updates"):
                 for node, values in chunk.items():
                     messages = values.get("messages", [])
                     if not messages:
@@ -75,8 +74,15 @@ class VinFastLLMHandler:
 
             if final_message:
                 raw_answer = final_message.content
-                return self._strip_thinking_tags(raw_answer)
-            return "Không có nội dung trả về."
+                return {
+                    "status": "ok",
+                    "content": self._strip_thinking_tags(raw_answer)
+                }
+            return {
+                "status": "error",
+                "type": "empty_response",
+                "message": "Không có nội dung trả về."
+            }
             
         except TimeoutError:
             return {
@@ -86,6 +92,7 @@ class VinFastLLMHandler:
             }
             
         except Exception as e:
+            print(f"[Lỗi hệ thống LLM]: {str(e)}")
             return {
                 "status": "error",
                 "type": "unknown",
