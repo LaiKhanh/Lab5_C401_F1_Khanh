@@ -16,7 +16,7 @@ class VinFastLLMHandler:
         if not os.environ.get("OPENAI_API_KEY"):
             print("CẢNH BÁO: Chưa có OPENAI_API_KEY trong file .env")
 
-        self.llm = ChatOpenAI(model="gpt-4o", temperature=0.2)
+        self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.2)
         # self.llm = ChatOllama(model="qwen2.5:7b-instruct", temperature=0.2)
 
         # Đọc System Prompt
