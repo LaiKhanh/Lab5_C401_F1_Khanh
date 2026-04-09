@@ -1,92 +1,91 @@
-from langgraph.graph import StateGraph, END
-from typing import TypedDict
-
-from modules.validator import handle_exception
+import streamlit as st
+import time
+from datetime import datetime
+from modules.ui_components import inject_custom_css, render_sidebar_content
 from modules.llm_handler import llm_agent
+from modules.validator import handle_exception
 
-
-
-
-# ===== STATE =====
-class AgentState(TypedDict):
-    input: str
-    clean_input: str
-    response: str
-
-
-# ===== NODE 1: VALIDATOR =====
-def validator_node(state: AgentState):
-    result = handle_exception(state["input"])
-
-    if result["status"] != "ok":
-        return {
-            "response": result["message"]
-        }
-
-    return {
-        "clean_input": result["cleaned_input"]
-    }
-
-
-def route_after_validator(state):
-    if "response" in state:
-        return END
-    return "llm"
-
-
-# ===== NODE 2: LLM =====
-def llm_node(state: AgentState):
-    user_input = state["clean_input"]
-
-    result = llm_agent.get_response(user_input, session_id="cli_user")
-
-    if result["status"] != "ok":
-        return {
-            "response": result["message"]
-        }
-
-    return {
-        "response": result["content"]
-    }
-
-
-# ===== GRAPH =====
-builder = StateGraph(AgentState)
-
-builder.add_node("validator", validator_node)
-builder.add_node("llm", llm_node)
-
-builder.set_entry_point("validator")
-
-builder.add_conditional_edges(
-    "validator",
-    route_after_validator,
-    {
-        "llm": "llm",
-        END: END
-    }
+# 1. PAGE CONFIGURATION
+st.set_page_config(
+    page_title="Vivin Chatbot",
+    page_icon="🤖",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-builder.add_edge("llm", END)
+# 2. INITIALIZE SESSION STATE
+if "messages" not in st.session_state:
+    st.session_state.messages = [{"role": "bot", "content": "ViVin xin chào, anh/chị đang có nhu cầu mua loại xe nào?"}]
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+if "current_page" not in st.session_state:
+    st.session_state.current_page = "chat"
+if "loading" not in st.session_state:
+    st.session_state.loading = False
 
-graph = builder.compile()
+# 3. SETUP CSS & HEADER
+inject_custom_css()
 
+# 4. SIDEBAR
+with st.sidebar:
+    render_sidebar_content()
 
-# ===== CLI TEST =====
-if __name__ == "__main__":
-    print("=== VinFast AI Assistant ===")
+# 5. PAGE CONTENT
+if st.session_state.current_page == "chat":
+    st.markdown('<div class="chat-container">', unsafe_allow_html=True)
+    for msg in st.session_state.messages:
+        role_class = "bot" if msg["role"] == "bot" else "user"
+        icon = "🤖" if msg["role"] == "bot" else "👤"
+        st.markdown(f"""
+            <div class="msg-wrapper {role_class}">
+                <div class="avatar">{icon}</div>
+                <div class="msg-content">
+                    <div class="bubble">{msg['content']}</div>
+                    <div class="msg-subtext">{"ViVin" if msg["role"]=="bot" else "YOU"} </div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    if st.session_state.loading:
+        st.markdown('<div class="msg-wrapper bot"><div class="avatar">🤖</div><div class="bubble">...</div></div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    while True:
-        user_input = input("\nBạn: ")
+    # Khung nhập liệu tối ưu
+    with st.form(key="chat_input_final", clear_on_submit=True):
+        cols = st.columns([0.88, 0.12])
+        user_msg = cols[0].text_input("Input", placeholder="Hỏi ViVin tại đây...", label_visibility="collapsed")
+        submit = cols[1].form_submit_button("SEND")
 
-        if user_input.lower() == "exit":
-            break
-
-        result = graph.invoke({
-            "input": user_input
-        })
-
-        if "response" in result:
-            print("\nBot:", result["response"])
+    if submit and user_msg:
+        check = handle_exception(user_msg)
+        if check["status"] == "ok":
+            st.session_state.messages.append({"role": "user", "content": user_msg})
+            st.session_state.loading = True
+            st.rerun()
         else:
-            print("\nBot: Hệ thống không trả về phản hồi hợp lệ.")
+            st.error(check["message"])
+
+elif st.session_state.current_page == "history":
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.title("📋 Lịch sử trò chuyện")
+    if not st.session_state.chat_history:
+        st.info("Chưa có lịch sử trò chuyện.")
+    else:
+        for i, chat in enumerate(reversed(st.session_state.chat_history)):
+            with st.expander(f"Hội thoại ngày {chat['time']}"):
+                for m in chat['messages']:
+                    st.write(f"**{m['role'].upper()}**: {m['content']}")
+
+elif st.session_state.current_page == "account":
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.title("👤 Thông tin cá nhân")
+    st.info("Tính năng đang được cập nhật.")
+
+# 6. AI RESPONSE LOGIC
+if st.session_state.loading:
+    time.sleep(0.5)
+    last_user_msg = st.session_state.messages[-1]["content"]
+    response = llm_agent.get_response(last_user_msg, session_id="session_f1")
+    st.session_state.messages.append({"role": "bot", "content": response})
+    st.session_state.loading = False
+    st.rerun()
