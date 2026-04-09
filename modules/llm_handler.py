@@ -32,7 +32,7 @@ class VinFastLLMHandler:
         self.app = create_react_agent(
             model=self.llm,
             tools=agent_tools,
-            state_modifier=SystemMessage(content=self.system_prompt),
+            prompt=SystemMessage(content=self.system_prompt),
             checkpointer=self.memory
         )
 
@@ -49,13 +49,34 @@ class VinFastLLMHandler:
         config = {"configurable": {"thread_id": session_id}}
         
         try:
-            result = self.app.invoke(
-                {"messages": [("user", user_question)]},
-                config=config
-            )
-            
-            raw_answer = result["messages"][-1].content
-            return self._strip_thinking_tags(raw_answer)
+            # Thay vì dùng invoke, ta dùng stream để in ra log gọi tool
+            final_message = None
+            for chunk in self.app.stream({"messages": [("user", user_question)]}, config=config, stream_mode="updates"):
+                for node, values in chunk.items():
+                    # values["messages"] có thể là list hoặc 1 message token. 
+                    # Tùy thuộc vào version langgraph, thường values["messages"] là list messages mới.
+                    messages = values.get("messages", [])
+                    if not messages:
+                        continue
+                        
+                    last_msg = messages[-1] if isinstance(messages, list) else messages
+                    
+                    if node == "agent":
+                        # Nếu AI trả về yêu cầu gọi tool
+                        if hasattr(last_msg, 'tool_calls') and last_msg.tool_calls:
+                            for tool in last_msg.tool_calls:
+                                print(f"\n🔍 [AI Đang Tra Cứu]: Gọi công cụ '{tool['name']}'")
+                                print(f"   📋 Chi tiết: {tool['args']}")
+                                
+                    elif node == "tools":
+                        print(f"✅ [Hệ Thống]: Đã lấy xong dữ liệu từ tool '{last_msg.name}'!\n")
+                        
+                    final_message = last_msg
+
+            if final_message:
+                raw_answer = final_message.content
+                return self._strip_thinking_tags(raw_answer)
+            return "Không có nội dung trả về."
             
         except Exception as e:
             return f"Xin lỗi, hệ thống AI đang gặp lỗi. Cảm ơn bạn đã quan tâm đến VinFast. Chi tiết lỗi: {e}"
