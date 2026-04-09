@@ -195,120 +195,56 @@ REPORT_REASONS = [
     "Khác"
 ]
 
+@st.dialog("📋 Báo cáo câu trả lời")
 def render_report_modal(message_index: int, message_content: str):
     """Hàm hiển thị modal popup để chọn lý do report"""
-    # Hiển thị overlay background
     st.markdown("""
     <style>
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.6);
-            z-index: 8000;
-            pointer-events: all;
+        [data-testid="stDialog"] {
+            background-color: white !important;
         }
-        
-        .modal-wrapper {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 9999;
-            width: 90%;
-            max-width: 500px;
-        }
-        
-        .modal-box {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 15px 50px rgba(0,0,0,0.4);
-            position: relative;
-            z-index: 9999;
-        }
-        
-        .modal-title {
-            text-align: center;
+        .dialog-title {
             color: #172B53;
-            margin: 0 0 20px 0;
-            font-size: 24px;
             font-weight: 700;
+            font-size: 20px;
+            margin-bottom: 15px;
         }
-        
-        .modal-label {
+        .dialog-label {
             color: #172B53;
             font-weight: 600;
-            margin: 0 0 15px 0;
-            font-size: 15px;
+            margin-bottom: 10px;
             display: block;
+            font-size: 14px;
         }
-        
-        .modal-content {
-            margin: 15px 0;
-        }
-        
-        .modal-box [data-testid="stRadio"] {
+        [data-testid="stDialog"] [data-testid="stRadio"] {
             background: white !important;
-            padding: 10px 0 !important;
-        }
-        
-        .modal-box [data-testid="stRadio"] > div {
-            background: white !important;
-        }
-        
-        .modal-buttons {
-            display: flex;
-            gap: 12px;
-            margin-top: 20px;
-            width: 100%;
-        }
-        
-        .modal-buttons > div {
-            flex: 1;
         }
     </style>
-    <div class="modal-overlay"></div>
-    <div class="modal-wrapper">
-        <div class="modal-box">
-            <div class="modal-title">📋 Báo cáo câu trả lời</div>
-            <span class="modal-label">Chọn lý do báo cáo:</span>
-        </div>
-    </div>
     """, unsafe_allow_html=True)
     
-    # Create a fixed position container for modal content
-    col_left, col_center, col_right = st.columns([1, 3, 1], gap="small")
+    st.markdown('<span class="dialog-label">Chọn lý do báo cáo:</span>', unsafe_allow_html=True)
     
-    with col_center:
-        with st.container():
-            st.markdown('<div class="modal-content">', unsafe_allow_html=True)
-            
-            # Radio buttons
-            selected_reason = st.radio(
-                "Lý do:",
-                REPORT_REASONS,
-                key=f"report_reason_{message_index}",
-                label_visibility="collapsed"
-            )
-            
-            # Buttons
-            st.markdown('<div class="modal-buttons">', unsafe_allow_html=True)
-            btn_col1, btn_col2 = st.columns(2)
-            with btn_col1:
-                if st.button("❌ Hủy", use_container_width=True, key=f"cancel_report_{message_index}"):
-                    st.session_state.report_modal = None
-                    st.rerun()
-            with btn_col2:
-                if st.button("✓ Gửi", use_container_width=True, key=f"send_report_{message_index}"):
-                    save_report(message_content, selected_reason)
-                    st.session_state.report_modal = None
-                    st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            st.markdown('</div>', unsafe_allow_html=True)
+    # Radio buttons
+    selected_reason = st.radio(
+        "Lý do:",
+        REPORT_REASONS,
+        key=f"report_reason_{message_index}",
+        label_visibility="collapsed"
+    )
+    
+    st.divider()
+    
+    # Buttons
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("❌ Hủy", use_container_width=True, key=f"cancel_report_{message_index}"):
+            st.session_state.report_modal = None
+            st.rerun()
+    with col2:
+        if st.button("✓ Gửi", use_container_width=True, key=f"send_report_{message_index}"):
+            save_report(message_content, selected_reason)
+            st.session_state.report_modal = None
+            st.rerun()
 
 def render_sidebar_content():
     """Hàm vẽ nội dung bên trong sidebar"""
