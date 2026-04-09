@@ -51,20 +51,39 @@ class VinFastLLMHandler:
         config = {"configurable": {"thread_id": session_id}}
         
         try:
-            try:
-                result = self.app.invoke(
-                    {"messages": [("user", user_question)]},
-                    config=config
-                )
-            except TimeoutError:
-                return {
-                    "status": "error",
-                    "type": "timeout",
-                    "message": "Hệ thống phản hồi quá lâu. Bạn vui lòng thử lại sau."
-                }
+            # Dùng stream để lấy log gọi tool real-time
+            final_message = None
+            for chunk in self.app.stream({"messages": [("user", user_question)]}, config=config, stream_mode="updates"):
+                for node, values in chunk.items():
+                    messages = values.get("messages", [])
+                    if not messages:
+                        continue
+                        
+                    last_msg = messages[-1] if isinstance(messages, list) else messages
+                    
+                    if node == "agent":
+                        # Nếu AI trả về yêu cầu gọi tool
+                        if hasattr(last_msg, 'tool_calls') and last_msg.tool_calls:
+                            for tool in last_msg.tool_calls:
+                                print(f"\n🔍 [AI Đang Thiết Lập]: Gọi công cụ '{tool['name']}'")
+                                print(f"   📋 Đầu vào (Input): {tool['args']}")
+                                
+                    elif node == "tools":
+                        print(f"✅ [Hệ Thống]: Đã nhận kết quả từ '{last_msg.name}'!\n")
+                        
+                    final_message = last_msg
+
+            if final_message:
+                raw_answer = final_message.content
+                return self._strip_thinking_tags(raw_answer)
+            return "Không có nội dung trả về."
             
-            raw_answer = result["messages"][-1].content
-            return self._strip_thinking_tags(raw_answer)
+        except TimeoutError:
+            return {
+                "status": "error",
+                "type": "timeout",
+                "message": "Hệ thống phản hồi quá lâu. Bạn vui lòng thử lại sau."
+            }
             
         except Exception as e:
             return {
