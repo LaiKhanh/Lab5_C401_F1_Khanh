@@ -40,7 +40,7 @@ class VinFastLLMHandler:
         """Hàm dọn dẹp thẻ <thinking> trước khi hiển thị cho UI"""
         return re.sub(r'<thinking>.*?</thinking>', '', text, flags=re.DOTALL).strip()
 
-    def get_response(self, user_question: str, session_id: str = "default_user") -> str:
+    def get_response(self, user_question: str, session_id: str = "default_user") -> dict:
         """
         Dev 1 (UI) sẽ gọi hàm này. 
         - user_question: Lời nhắn của khách.
@@ -49,16 +49,36 @@ class VinFastLLMHandler:
         config = {"configurable": {"thread_id": session_id}}
         
         try:
-            result = self.app.invoke(
-                {"messages": [("user", user_question)]},
-                config=config
-            )
+            try:
+                result = self.app.invoke(
+                    {"messages": [("user", user_question)]},
+                    config=config
+                )
+            except TimeoutError:
+                return {
+                    "status": "error",
+                    "type": "timeout",
+                    "message": "Hệ thống phản hồi quá lâu. Bạn vui lòng thử lại sau."
+                }
             
             raw_answer = result["messages"][-1].content
-            return self._strip_thinking_tags(raw_answer)
+            if not raw_answer or raw_answer.strip() == "":
+                return {
+                    "status": "error",
+                    "type": "empty_response",
+                    "message": "Không nhận được phản hồi hợp lệ từ hệ thống."
+                }
+            return {
+                "status": "ok",
+                "content": self._strip_thinking_tags(raw_answer)
+            }
             
         except Exception as e:
-            return f"Xin lỗi, hệ thống AI đang gặp lỗi. Cảm ơn bạn đã quan tâm đến VinFast. Chi tiết lỗi: {e}"
+            return {
+                "status": "error",
+                "type": "unknown",
+                "message": "Hệ thống đang gặp sự cố. Bạn vui lòng thử lại sau hoặc tham khảo website VinFast (https://vinfastauto.com)."
+            }
 
 # Export một instance duy nhất để các file khác import vào dùng
 llm_agent = VinFastLLMHandler()
