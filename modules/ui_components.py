@@ -242,9 +242,17 @@ def render_report_modal(message_index: int, message_content: str):
             st.rerun()
     with col2:
         if st.button("✓ Gửi", use_container_width=True, key=f"send_report_{message_index}"):
-            save_report(message_content, selected_reason)
-            st.session_state.report_modal = None
-            st.rerun()
+            try:
+                # Save the report to file
+                save_report(message_content, selected_reason)
+                st.success("✓ Báo cáo đã được gửi thành công!")
+                # Close modal after successful save
+                st.session_state.report_modal = None
+                import time
+                time.sleep(0.5)  # Brief pause to show success message
+                st.rerun()
+            except Exception as e:
+                st.error(f"Lỗi khi gửi báo cáo: {str(e)}")
 
 def render_sidebar_content():
     """Hàm vẽ nội dung bên trong sidebar"""
