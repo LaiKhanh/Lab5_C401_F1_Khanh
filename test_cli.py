@@ -1,3 +1,4 @@
+from modules.validator import handle_exception
 from modules.llm_handler import llm_agent
 
 def main():
@@ -20,9 +21,21 @@ def main():
                 continue
                 
             print("\nAI đang suy nghĩ (và gọi tool nếu cần)...")
-            response = llm_agent.get_response(user_input, session_id=session_id)
+            validation = handle_exception(user_input)
+
+            if validation["status"] != "ok":
+                print(f"\nAI: {validation['message']}")
+                print("-" * 60)
+                continue
+
+            clean_input = validation["cleaned_input"]
+
+            response = llm_agent.get_response(clean_input, session_id=session_id)
             
-            print(f"\nAI: {response}")
+            if response["status"] != "ok":
+                print(f"\nAI: {response['message']}")
+            else:
+                print(f"\nAI: {response['content']}")
             print("-" * 60)
             
         except KeyboardInterrupt:
