@@ -3,7 +3,6 @@ from datetime import datetime
 
 def inject_custom_css():
     """Nhúng CSS để fix màu Palette, cố định Header và tối ưu khung nhập liệu"""
-    # CẬP NHẬT MÀU SẮC CHUẨN PALETTE
     COLOR_MAIN_BG = "#F3F8FF"
     COLOR_BOT_BUBBLE = "#DEECFF"
     COLOR_USER_BUBBLE = "#C6CFFF"
